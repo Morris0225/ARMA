@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARMA III 火炮計算 v8.0</title>
+    <style>
+        :root { --primary: #ffcc00; --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; }
+        .container { background: var(--card); padding: 20px; border-radius: 12px; width: 100%; max-width: 420px; border: 1px solid #333; }
+        h2 { text-align: center; color: var(--primary); margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        .label { font-size: 0.75rem; color: #888; margin: 15px 0 5px; text-transform: uppercase; font-weight: bold; }
+        .grid { display: flex; gap: 5px; margin-bottom: 10px; }
+        .btn { flex: 1; padding: 10px 5px; border: 1px solid #444; background: #2a2a2a; color: #ccc; cursor: pointer; border-radius: 4px; font-size: 0.75rem; }
+        .btn.active { background-color: var(--primary); color: #000; border-color: var(--primary); font-weight: bold; }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .charge-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+        .charge-btn { padding: 8px 0; background: #333; border: 1px solid #555; color: #eee; cursor: pointer; border-radius: 4px; font-size: 0.7rem; }
+        .charge-btn.active { background: #444; border: 2px solid var(--primary); color: var(--primary); }
+        .info-box { background: #151515; padding: 8px; border-radius: 4px; margin: 10px 0; font-size: 0.85rem; color: #00ffcc; text-align: center; border: 1px dashed #444; }
+        input { width: 100%; padding: 10px; background: #2a2a2a; border: 1px solid #444; color: #fff; border-radius: 6px; box-sizing: border-box; font-size: 1.1rem; }
+        .result { margin-top: 15px; padding: 15px; background: #252525; border-radius: 8px; border-top: 4px solid var(--primary); }
+        .res-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .res-val { color: var(--primary); font-weight: bold; font-size: 1.6rem; }
+        .time-val { color: #00ffcc; font-weight: bold; font-size: 1.3rem; }
+        .auto-msg { font-size: 0.7rem; color: #ffcc00; margin-top: 5px; display: block; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>ARMA III 火炮計算</h2>
+
+    <div class="label">1. 武器系統</div>
+    <div class="grid">
+        <button id="wpn_MK6" class="btn" onclick="setW('MK6')">MK6</button>
+        <button id="wpn_M119" class="btn" onclick="setW('M119')">M119A2</button>
+        <button id="wpn_SELF" class="btn" onclick="setW('SELF')">自走砲</button>
+        <button id="wpn_OTHER" class="btn" onclick="setW('OTHER')">其他</button>
+    </div>
+
+    <div id="customArea" style="display:none; background:#252525; padding:10px; border-radius:6px; border:1px solid #ffcc0044; margin-bottom:10px;">
+        <label style="font-size: 0.7rem; color: #ffcc00;">自定義初速 (m/s):</label>
+        <input type="number" id="inCustomV" oninput="calc()">
+    </div>
+
+    <div class="label">2. 射角模式 <span id="mode-warn" style="color:#ff4444; font-size:0.6rem; display:none;">(MK6 鎖定 HIGH)</span></div>
+    <div class="grid">
+        <button id="mode_lo" class="btn" onclick="setM('lo')">LOW</button>
+        <button id="mode_hi" class="btn" onclick="setM('hi')">HIGH</button>
+    </div>
+
+    <div id="chargeUI">
+        <div class="label">3. 裝藥選擇 (自動匹配中)</div>
+        <div id="cArea" class="charge-grid"></div>
+        <div id="rDisp" class="info-box">射程: ---</div>
+    </div>
+
+    <div class="label">4. 目標數據</div>
+    <div style="display: flex; gap: 10px;">
+        <div style="flex:1">
+            <label style="font-size: 0.65rem; color:#666;">距離 (m)</label>
+            <input type="number" id="inDist" placeholder="輸入距離..." oninput="autoMatchAndCalc()">
+        </div>
+        <div style="flex:1">
+            <label style="font-size: 0.65rem; color:#666;">高低差 (m)</label>
+            <input type="number" id="inAlt" value="0" oninput="autoMatchAndCalc()">
+        </div>
+    </div>
+
+    <div class="result">
+        <div class="res-row"><span>仰角:</span><span class="res-val"><span id="outMil">0.0</span> Mil</span></div>
+        <div class="res-row"><span>飛行時間:</span><span class="time-val"><span id="outTime">0</span> s</span></div>
+        <div id="matchMsg" class="auto-msg"></div>
+    </div>
+</div>
+
+<script>
+    const DATA = {
+        'MK6': { v: [70, 140, 200], r: { hi: [[50,450], [150,1950], [300,4050]], lo: [[50,450], [150,1950], [300,4050]] } },
+        'M119': { v: [153.9, 243.0, 388.8], r: { hi: [[850,2400], [2100,6000], [5300,15400]], lo: [[200,2400], [600,6000], [1100,15400]] } },
+        'SELF': { v: [153.9, 243.0, 388.8, 648.2, 810.0], r: { hi: [[850,2400], [2100,6000], [5300,15400], [14700,29900], [22900,29900]], lo: [[200,2400], [600,6000], [1100,15400], [3000,29900], [4700,29900]] } },
+        'OTHER': { v: [0], r: { hi: [[0,99999]], lo: [[0,99999]] } }
+    };
+
+    let curW = 'MK6', curM = 'hi', curC = 0;
+
+    function setW(w) {
+        curW = w;
+        curC = 0;
+        document.getElementById('customArea').style.display = (w === 'OTHER' ? 'block' : 'none');
+        document.getElementById('chargeUI').style.display = (w === 'OTHER' ? 'none' : 'block');
+        
+        const loBtn = document.getElementById('mode_lo');
+        const warn = document.getElementById('mode-warn');
+        if (w === 'MK6') { curM = 'hi'; loBtn.disabled = true; warn.style.display = 'inline'; } 
+        else { loBtn.disabled = false; warn.style.display = 'none'; }
+
+        ['MK6','M119','SELF','OTHER'].forEach(id => document.getElementById('wpn_'+id).classList.toggle('active', curW === id));
+        document.getElementById('mode_lo').classList.toggle('active', curM === 'lo');
+        document.getElementById('mode_hi').classList.toggle('active', curM === 'hi');
+
+        buildC();
+        autoMatchAndCalc();
+    }
+
+    function setM(m) {
+        if (curW === 'MK6' && m === 'lo') return;
+        curM = m;
+        document.getElementById('mode_lo').classList.toggle('active', m === 'lo');
+        document.getElementById('mode_hi').classList.toggle('active', m === 'hi');
+        buildC();
+        autoMatchAndCalc();
+    }
+
+    function buildC() {
+        const area = document.getElementById('cArea');
+        area.innerHTML = '';
+        if (curW === 'OTHER') return;
+        DATA[curW].v.forEach((v, i) => {
+            const b = document.createElement('button');
+            b.className = 'charge-btn' + (i === curC ? ' active' : '');
+            b.innerText = 'CH ' + i;
+            b.onclick = () => { curC = i; buildC(); calc(); };
+            area.appendChild(b);
+        });
+        const range = DATA[curW].r[curM][curC];
+        document.getElementById('rDisp').innerText = `射程: ${range[0]}m - ${range[1]}m`;
+    }
+
+    // 新增：自動匹配邏輯
+    function autoMatchAndCalc() {
+        const x = parseFloat(document.getElementById('inDist').value);
+        if (!x || curW === 'OTHER') { calc(); return; }
+
+        let found = false;
+        const charges = DATA[curW].r[curM];
+        
+        for (let i = 0; i < charges.length; i++) {
+            if (x >= charges[i][0] && x <= charges[i][1]) {
+                curC = i;
+                found = true;
+                document.getElementById('matchMsg').innerText = `系統提示：已自動選擇裝藥 CH ${i}`;
+                break;
+            }
+        }
+
+        if (!found) {
+            document.getElementById('matchMsg').innerText = "❌ 超出所有裝藥射程";
+        }
+
+        buildC(); // 更新 UI 上的裝藥按鈕高亮
+        calc();
+    }
+
+    function calc() {
+        const x = parseFloat(document.getElementById('inDist').value);
+        const y = parseFloat(document.getElementById('inAlt').value) || 0;
+        let v = (curW === 'OTHER' ? parseFloat(document.getElementById('inCustomV').value) : DATA[curW].v[curC]);
+
+        if (!x || !v) return;
+
+        const g = 9.80665, v2 = v*v, v4 = v2*v2;
+        const range = DATA[curW].r[curM][curC];
+
+        // 雙重檢查：如果自動匹配失敗
+        if (curW !== 'OTHER' && (x < range[0] || x > range[1])) {
+            document.getElementById('outMil').innerText = "OUT";
+            document.getElementById('outTime').innerText = "---";
+            return;
+        }
+
+        const disc = v4 - g*(g*x*x + 2*y*v2);
+        if (disc < 0) {
+            document.getElementById('outMil').innerText = "PHYS-ERROR";
+            document.getElementById('outTime').innerText = "---";
+            return;
+        }
+
+        const angle = Math.atan(curM === 'hi' ? (v2 + Math.sqrt(disc))/(g*x) : (v2 - Math.sqrt(disc))/(g*x));
+        document.getElementById('outMil').innerText = (angle * 1018.59).toFixed(1);
+        document.getElementById('outTime').innerText = (x / (v * Math.cos(angle))).toFixed(1);
+    }
+
+    setW('MK6');
+</script>
+
+</body>
+</html>
