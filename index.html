@@ -3,75 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARMA III 火炮計算 v8.0</title>
-    <style>
-        :root { --primary: #ffcc00; --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; }
-        .container { background: var(--card); padding: 20px; border-radius: 12px; width: 100%; max-width: 420px; border: 1px solid #333; }
-        h2 { text-align: center; color: var(--primary); margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid #444; padding-bottom: 10px; }
-        .label { font-size: 0.75rem; color: #888; margin: 15px 0 5px; text-transform: uppercase; font-weight: bold; }
-        .grid { display: flex; gap: 5px; margin-bottom: 10px; }
-        .btn { flex: 1; padding: 10px 5px; border: 1px solid #444; background: #2a2a2a; color: #ccc; cursor: pointer; border-radius: 4px; font-size: 0.75rem; }
-        .btn.active { background-color: var(--primary); color: #000; border-color: var(--primary); font-weight: bold; }
-        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
-        .charge-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-        .charge-btn { padding: 8px 0; background: #333; border: 1px solid #555; color: #eee; cursor: pointer; border-radius: 4px; font-size: 0.7rem; }
-        .charge-btn.active { background: #444; border: 2px solid var(--primary); color: var(--primary); }
-        .info-box { background: #151515; padding: 8px; border-radius: 4px; margin: 10px 0; font-size: 0.85rem; color: #00ffcc; text-align: center; border: 1px dashed #444; }
-        input { width: 100%; padding: 10px; background: #2a2a2a; border: 1px solid #444; color: #fff; border-radius: 6px; box-sizing: border-box; font-size: 1.1rem; }
-        .result { margin-top: 15px; padding: 15px; background: #252525; border-radius: 8px; border-top: 4px solid var(--primary); }
-        .res-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .res-val { color: var(--primary); font-weight: bold; font-size: 1.6rem; }
-        .time-val { color: #00ffcc; font-weight: bold; font-size: 1.3rem; }
-        .auto-msg { font-size: 0.7rem; color: #ffcc00; margin-top: 5px; display: block; text-align: center; }
+    <title>ARMA III 火炮計算 v24.0</title>
+<style>
+        :root { --primary: #ffcc00; --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; --accent: #00ffcc; --save: #4caf50; --azi: #ff8800; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .main-wrapper { display: flex; gap: 15px; max-width: 1100px; width: 100%; flex-direction: row; }
+        .left-panel, .right-panel { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #333; height: fit-content; }
+        .left-panel { flex: 1; min-width: 320px; }
+        .right-panel { flex: 1.2; display: flex; flex-direction: column; gap: 15px; min-width: 320px; }
+        @media (max-width: 850px) { .main-wrapper { flex-direction: column; padding: 5px; } .left-panel, .right-panel { width: 100%; min-width: 0; box-sizing: border-box; } }
+        .top-mode-switch { background: #000; padding: 5px; border-radius: 8px; display: flex; margin-bottom: 20px; border: 1px solid #444; }
+        h2 { text-align: center; color: var(--primary); margin: 0 0 10px; font-size: 1.1rem; border-bottom: 2px solid var(--primary); padding-bottom: 8px; text-transform: uppercase; }
+        .label { font-size: 0.75rem; color: #888; margin: 12px 0 6px 0; text-transform: uppercase; font-weight: bold; border-left: 3px solid var(--primary); padding-left: 8px; }
+        .grid { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+        .btn { flex: 1; min-width: 75px; padding: 12px 5px; border: 1px solid #444; background: #2a2a2a; color: #ccc; cursor: pointer; border-radius: 4px; font-size: 0.75rem; }
+        .btn.active { background-color: var(--primary) !important; color: #000 !important; font-weight: bold; }
+        .charge-section { background: #252525; padding: 12px; border-radius: 8px; border: 1px solid #444; margin-bottom: 10px; }
+        .charge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 8px; }
+        .charge-btn { padding: 10px 0; background: #333; border: 1px solid #555; color: #eee; cursor: pointer; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .charge-btn.active { background: var(--primary); color: #000; }
+        input { width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; color: #fff; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        .panel { background: #252525; padding: 12px; border-radius: 8px; border: 1px solid #333; margin-bottom: 10px; }
+        .result-box { background: #000; padding: 15px; border-radius: 12px; border-top: 4px solid var(--primary); }
+        .res-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .res-val { color: var(--primary); font-weight: bold; font-size: 1.8rem; }
+        .azi-val { color: var(--azi); font-weight: bold; font-size: 1.8rem; }
+        .dist-val { color: var(--accent); font-weight: bold; font-size: 1.1rem; }
+        .save-btn { background: var(--save); color: #000; border: none; width: 100%; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 10px; font-size: 0.9rem; }
+        .mem-item { background: #151515; border: 1px solid #333; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #444; }
+        .mem-data-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; text-align: center; }
+        .cell-label { font-size: 0.6rem; color: #555; }
+        .cell-val { font-size: 0.85rem; font-weight: bold; color: #fff; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>ARMA III 火炮計算</h2>
-
-    <div class="label">1. 武器系統</div>
-    <div class="grid">
-        <button id="wpn_MK6" class="btn" onclick="setW('MK6')">MK6</button>
-        <button id="wpn_M119" class="btn" onclick="setW('M119')">M119A2</button>
-        <button id="wpn_SELF" class="btn" onclick="setW('SELF')">自走砲</button>
-        <button id="wpn_OTHER" class="btn" onclick="setW('OTHER')">其他</button>
-    </div>
-
-    <div id="customArea" style="display:none; background:#252525; padding:10px; border-radius:6px; border:1px solid #ffcc0044; margin-bottom:10px;">
-        <label style="font-size: 0.7rem; color: #ffcc00;">自定義初速 (m/s):</label>
-        <input type="number" id="inCustomV" oninput="calc()">
-    </div>
-
-    <div class="label">2. 射角模式 <span id="mode-warn" style="color:#ff4444; font-size:0.6rem; display:none;">(MK6 鎖定 HIGH)</span></div>
-    <div class="grid">
-        <button id="mode_lo" class="btn" onclick="setM('lo')">LOW</button>
-        <button id="mode_hi" class="btn" onclick="setM('hi')">HIGH</button>
-    </div>
-
-    <div id="chargeUI">
-        <div class="label">3. 裝藥選擇 (自動匹配中)</div>
-        <div id="cArea" class="charge-grid"></div>
-        <div id="rDisp" class="info-box">射程: ---</div>
-    </div>
-
-    <div class="label">4. 目標數據</div>
-    <div style="display: flex; gap: 10px;">
-        <div style="flex:1">
-            <label style="font-size: 0.65rem; color:#666;">距離 (m)</label>
-            <input type="number" id="inDist" placeholder="輸入距離..." oninput="autoMatchAndCalc()">
+<div class="main-wrapper">
+    <div class="left-panel">
+        <div class="top-mode-switch">
+            <button id="tabDist" class="btn active" onclick="switchInputMode('dist')">距離模式</button>
+            <button id="tabGrid" class="btn" onclick="switchInputMode('grid')">座標模式</button>
         </div>
-        <div style="flex:1">
-            <label style="font-size: 0.65rem; color:#666;">高低差 (m)</label>
-            <input type="number" id="inAlt" value="0" oninput="autoMatchAndCalc()">
+        <h2>ARMA III 火炮計算 v24.0</h2>
+        
+        <div class="label">1. 武器系統</div>
+        <div class="grid">
+            <button class="btn wpn-btn" onclick="setW('MK6', this)">MK6</button>
+            <button class="btn wpn-btn" onclick="setW('M119', this)">M119</button>
+            <button class="btn wpn-btn" onclick="setW('SELF', this)">自走砲</button>
+            <button class="btn wpn-btn" onclick="setW('OTHER', this)">其他</button>
+        </div>
+
+        <div class="label">2. 裝藥量 (自動匹配)</div>
+        <div class="charge-section">
+            <div id="cArea" class="charge-grid"></div>
+            <div id="rDisp" style="font-size: 0.75rem; color: var(--accent); text-align: center; margin-top: 10px; font-family: monospace;">RANGE: ---</div>
+        </div>
+
+        <div class="label">3. 射角模式</div>
+        <div class="grid">
+            <button id="mode_hi" class="btn mode-btn" onclick="setM('hi')">HIGH</button>
+            <button id="mode_lo" class="btn mode-btn" onclick="setM('lo')">LOW</button>
+        </div>
+
+        <div class="label">4. 目標數據</div>
+        <div id="panelDist" class="panel">
+            <input type="number" id="inDist" placeholder="輸入水平距離 (m)" oninput="runLogic()">
+        </div>
+        <div id="panelGrid" class="panel" style="display:none;">
+            <div class="grid" style="margin-bottom:0">
+                <input type="text" id="gridSelf" placeholder="砲陣位: 045128" oninput="runLogic()">
+                <input type="text" id="gridTgt" placeholder="目標位: 050130" oninput="runLogic()">
+            </div>
+        </div>
+        <div class="panel" style="margin-top:-5px;">
+            <input type="number" id="inAlt" placeholder="高低差 (m)" oninput="runLogic()">
+        </div>
+
+        <div class="label">5. 彈著修正 (幾何運算)</div>
+        <div class="panel">
+            <div class="grid">
+                <input type="number" id="corrDist" placeholder="前後偏差(前+後-) (m)" oninput="runLogic()">
+                <input type="number" id="corrSide" placeholder="左右偏差(左-右+) (m)" oninput="runLogic()">
+            </div>
+            <button class="btn" style="width:100%; background:#333; color:#888;" onclick="resetCorr()">RESET</button>
         </div>
     </div>
 
-    <div class="result">
-        <div class="res-row"><span>仰角:</span><span class="res-val"><span id="outMil">0.0</span> Mil</span></div>
-        <div class="res-row"><span>飛行時間:</span><span class="time-val"><span id="outTime">0</span> s</span></div>
-        <div id="matchMsg" class="auto-msg"></div>
+    <div class="right-panel">
+        <div class="result-box">
+            <div class="res-row"><span style="color:#888;">計算距離 (Dist)</span><span class="dist-val" id="outRealDist">0 m</span></div>
+            <hr style="border:0; border-top:1px solid #333; margin:10px 0;">
+            <div class="res-row"><span>仰角 (Elev)</span><span class="res-val" id="outMil">---</span></div>
+            <div class="res-row"><span style="color:#888;">方位 (Azi)</span><span class="azi-val" id="outAzi">---</span></div>
+            <div class="res-row"><span style="font-size:0.8rem; color:#666;">時間</span><span style="color:var(--accent); font-weight:bold;"><span id="outTime">0</span> s</span></div>
+            <div id="statusMsg" style="font-size:0.7rem; color:#ff4444; text-align:center; margin-top:5px;"></div>
+        </div>
+        <div class="memory-box">
+            <button class="save-btn" onclick="saveM()">✚ 紀錄當前數據</button>
+            <div id="memList" class="mem-list"></div>
+        </div>
     </div>
 </div>
 
@@ -80,110 +111,152 @@
         'MK6': { v: [70, 140, 200], r: { hi: [[50,450], [150,1950], [300,4050]], lo: [[50,450], [150,1950], [300,4050]] } },
         'M119': { v: [153.9, 243.0, 388.8], r: { hi: [[850,2400], [2100,6000], [5300,15400]], lo: [[200,2400], [600,6000], [1100,15400]] } },
         'SELF': { v: [153.9, 243.0, 388.8, 648.2, 810.0], r: { hi: [[850,2400], [2100,6000], [5300,15400], [14700,29900], [22900,29900]], lo: [[200,2400], [600,6000], [1100,15400], [3000,29900], [4700,29900]] } },
-        'OTHER': { v: [0], r: { hi: [[0,99999]], lo: [[0,99999]] } }
+        'OTHER': { v: [0], r: null } 
     };
+    let curW = 'MK6', curM = 'hi', curC = 0, curInMode = 'dist';
+    let memory = [];
 
-    let curW = 'MK6', curM = 'hi', curC = 0;
-
-    function setW(w) {
-        curW = w;
-        curC = 0;
-        document.getElementById('customArea').style.display = (w === 'OTHER' ? 'block' : 'none');
-        document.getElementById('chargeUI').style.display = (w === 'OTHER' ? 'none' : 'block');
-        
+    function setW(w, el) {
+        curW = w; curC = 0;
+        document.querySelectorAll('.wpn-btn').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
         const loBtn = document.getElementById('mode_lo');
-        const warn = document.getElementById('mode-warn');
-        if (w === 'MK6') { curM = 'hi'; loBtn.disabled = true; warn.style.display = 'inline'; } 
-        else { loBtn.disabled = false; warn.style.display = 'none'; }
-
-        ['MK6','M119','SELF','OTHER'].forEach(id => document.getElementById('wpn_'+id).classList.toggle('active', curW === id));
-        document.getElementById('mode_lo').classList.toggle('active', curM === 'lo');
-        document.getElementById('mode_hi').classList.toggle('active', curM === 'hi');
-
-        buildC();
-        autoMatchAndCalc();
+        if (w === 'MK6') { curM = 'hi'; loBtn.disabled = true; } else { loBtn.disabled = false; }
+        updateUI();
     }
-
+    function switchInputMode(m) {
+        curInMode = m;
+        document.getElementById('panelDist').style.display = (m === 'dist' ? 'block' : 'none');
+        document.getElementById('panelGrid').style.display = (m === 'grid' ? 'block' : 'none');
+        document.getElementById('tabDist').classList.toggle('active', m === 'dist');
+        document.getElementById('tabGrid').classList.toggle('active', m === 'grid');
+        runLogic();
+    }
     function setM(m) {
         if (curW === 'MK6' && m === 'lo') return;
         curM = m;
-        document.getElementById('mode_lo').classList.toggle('active', m === 'lo');
-        document.getElementById('mode_hi').classList.toggle('active', m === 'hi');
-        buildC();
-        autoMatchAndCalc();
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.id.includes(m)));
+        buildC(); runLogic();
     }
-
+    function updateUI() {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.id.includes(curM)));
+        buildC(); runLogic();
+    }
     function buildC() {
-        const area = document.getElementById('cArea');
-        area.innerHTML = '';
-        if (curW === 'OTHER') return;
+        const area = document.getElementById('cArea'); area.innerHTML = '';
+        if (curW === 'OTHER') {
+            area.innerHTML = '<input type="number" id="inCustomV" placeholder="手動初速 (m/s)" oninput="runLogic()">';
+            document.getElementById('rDisp').innerText = "CUSTOM MODE";
+            return;
+        }
         DATA[curW].v.forEach((v, i) => {
             const b = document.createElement('button');
             b.className = 'charge-btn' + (i === curC ? ' active' : '');
             b.innerText = 'CH ' + i;
-            b.onclick = () => { curC = i; buildC(); calc(); };
+            b.onclick = () => { curC = i; buildC(); runLogic(); };
             area.appendChild(b);
         });
         const range = DATA[curW].r[curM][curC];
-        document.getElementById('rDisp').innerText = `射程: ${range[0]}m - ${range[1]}m`;
+        document.getElementById('rDisp').innerText = `RANGE: ${range[0]}m - ${range[1]}m`;
+    }
+    function resetCorr() { document.getElementById('corrDist').value = ''; document.getElementById('corrSide').value = ''; runLogic(); }
+
+    function parseG(s) {
+        if (!s) return null;
+        let n = s.replace(/[^0-9]/g, '');
+        if (n.length !== 6 && n.length !== 8 && n.length !== 10) return null;
+        let half = n.length / 2;
+        let x = parseInt(n.substring(0, half));
+        let y = parseInt(n.substring(half));
+        let mul = (n.length === 6) ? 100 : (n.length === 8 ? 10 : 1);
+        return { x: x * mul, y: y * mul };
     }
 
-    // 新增：自動匹配邏輯
-    function autoMatchAndCalc() {
-        const x = parseFloat(document.getElementById('inDist').value);
-        if (!x || curW === 'OTHER') { calc(); return; }
+    function runLogic() {
+        let x = 0, y = 0, baseAzi = null;
+        document.getElementById('statusMsg').innerText = "";
 
-        let found = false;
-        const charges = DATA[curW].r[curM];
-        
-        for (let i = 0; i < charges.length; i++) {
-            if (x >= charges[i][0] && x <= charges[i][1]) {
-                curC = i;
-                found = true;
-                document.getElementById('matchMsg').innerText = `系統提示：已自動選擇裝藥 CH ${i}`;
-                break;
+        if (curInMode === 'grid') {
+            const s = parseG(document.getElementById('gridSelf').value);
+            const t = parseG(document.getElementById('gridTgt').value);
+            y = parseFloat(document.getElementById('inAlt').value) || 0;
+            if (s && t) {
+                const dx = t.x - s.x, dy = t.y - s.y;
+                x = Math.sqrt(dx * dx + dy * dy);
+                let rad = Math.atan2(dx, dy); 
+                let mil = rad * (3200 / Math.PI);
+                baseAzi = mil < 0 ? mil + 6400 : mil;
             }
+        } else {
+            x = parseFloat(document.getElementById('inDist').value) || 0;
+            y = parseFloat(document.getElementById('inAlt').value) || 0;
+        }
+        
+        const corrDist = parseFloat(document.getElementById('corrDist').value) || 0; // 前後偏差
+        const corrLat = parseFloat(document.getElementById('corrSide').value) || 0;  // 左右偏差 (公尺)
+        
+        // 1. 計算修正後的直線距離
+        const finalX = x + corrDist;
+        document.getElementById('outRealDist').innerText = `${x.toFixed(1)} m` + (corrDist !== 0 ? ` (${finalX.toFixed(1)} m)` : "");
+
+        // 2. 幾何運算方位角修正 (根據距離算密位)
+        if (baseAzi !== null && x > 0) {
+            // 使用三角函數計算角度偏差: offset_rad = atan(左右偏差 / 距離)
+            let offsetRad = Math.atan2(corrLat, x);
+            let offsetMil = offsetRad * (3200 / Math.PI);
+            let finalAzi = (baseAzi + offsetMil) % 6400;
+            if (finalAzi < 0) finalAzi += 6400;
+            document.getElementById('outAzi').innerText = finalAzi.toFixed(0);
+        } else {
+            document.getElementById('outAzi').innerText = "---";
         }
 
-        if (!found) {
-            document.getElementById('matchMsg').innerText = "❌ 超出所有裝藥射程";
+        if (finalX <= 0) { resetResult(); return; }
+
+        // 3. 自動匹配裝藥
+        if (curW !== 'OTHER') {
+            let found = false;
+            for (let i = 0; i < DATA[curW].v.length; i++) {
+                const rs = DATA[curW].r[curM][i];
+                if (finalX >= rs[0] && finalX <= rs[1]) {
+                    if (curC !== i) { curC = i; buildC(); }
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) { document.getElementById('outMil').innerText = "OUT"; return; }
         }
 
-        buildC(); // 更新 UI 上的裝藥按鈕高亮
-        calc();
+        // 4. 計算仰角
+        let v = curW === 'OTHER' ? parseFloat(document.getElementById('inCustomV').value) : DATA[curW].v[curC];
+        if(!v) return;
+        const g = 9.80665, v2 = v*v, v4 = Math.pow(v,4), disc = v4 - g*(g*finalX*finalX + 2*y*v2);
+        if(disc < 0) { document.getElementById('outMil').innerText = "ERROR"; return; }
+        const ang = Math.atan(curM === 'hi' ? (v2 + Math.sqrt(disc))/(g*finalX) : (v2 - Math.sqrt(disc))/(g*finalX));
+        document.getElementById('outMil').innerText = (ang * 1018.59).toFixed(1);
+        document.getElementById('outTime').innerText = (finalX / (v * Math.cos(ang))).toFixed(1);
     }
 
-    function calc() {
-        const x = parseFloat(document.getElementById('inDist').value);
-        const y = parseFloat(document.getElementById('inAlt').value) || 0;
-        let v = (curW === 'OTHER' ? parseFloat(document.getElementById('inCustomV').value) : DATA[curW].v[curC]);
-
-        if (!x || !v) return;
-
-        const g = 9.80665, v2 = v*v, v4 = v2*v2;
-        const range = DATA[curW].r[curM][curC];
-
-        // 雙重檢查：如果自動匹配失敗
-        if (curW !== 'OTHER' && (x < range[0] || x > range[1])) {
-            document.getElementById('outMil').innerText = "OUT";
-            document.getElementById('outTime').innerText = "---";
-            return;
-        }
-
-        const disc = v4 - g*(g*x*x + 2*y*v2);
-        if (disc < 0) {
-            document.getElementById('outMil').innerText = "PHYS-ERROR";
-            document.getElementById('outTime').innerText = "---";
-            return;
-        }
-
-        const angle = Math.atan(curM === 'hi' ? (v2 + Math.sqrt(disc))/(g*x) : (v2 - Math.sqrt(disc))/(g*x));
-        document.getElementById('outMil').innerText = (angle * 1018.59).toFixed(1);
-        document.getElementById('outTime').innerText = (x / (v * Math.cos(angle))).toFixed(1);
+    function resetResult() { document.getElementById('outMil').innerText = "---"; document.getElementById('outTime').innerText = "0"; }
+    function saveM() {
+        const mil = document.getElementById('outMil').innerText;
+        if (mil === "---" || mil === "OUT" || mil === "ERROR") return;
+        const target = curInMode === 'grid' ? document.getElementById('gridTgt').value : document.getElementById('inDist').value + "m";
+        memory.push({ target, mil, azi: document.getElementById('outAzi').innerText, time: document.getElementById('outTime').innerText });
+        if(memory.length > 8) memory.shift();
+        renderMem();
     }
-
-    setW('MK6');
+    function renderMem() {
+        const list = document.getElementById('memList');
+        list.innerHTML = memory.slice().reverse().map(m => `
+            <div class="mem-item"><div class="mem-data-grid">
+                <div class="mem-data-cell"><span class="cell-label">TARGET</span><span class="cell-val">${m.target}</span></div>
+                <div class="mem-data-cell"><span class="cell-label">ELEV</span><span class="cell-val" style="color:var(--primary)">${m.mil}</span></div>
+                <div class="mem-data-cell"><span class="cell-label">AZI</span><span class="cell-val" style="color:var(--azi)">${m.azi}</span></div>
+                <div class="mem-data-cell"><span class="cell-label">TOF</span><span class="cell-val" style="color:var(--accent)">${m.time}s</span></div>
+            </div></div>`).join('');
+    }
+    window.onload = () => { setW('MK6', document.querySelector('.wpn-btn')); };
 </script>
-
 </body>
 </html>
